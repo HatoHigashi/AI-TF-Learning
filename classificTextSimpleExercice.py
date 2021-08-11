@@ -13,6 +13,20 @@ from tensorflow.keras import losses
 from tensorflow.keras import preprocessing
 from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
 
+# Variables
+
+    #Charger le dataset
+batch_size = 32
+seed = 42   
+val_split = 0.4 #Pourcentage de fichiers utilisés dans la phase de validation
+    #Vectorisation
+max_features = 10000
+sequence_length = 250
+
+    #Modèle
+epochs = 30
+minValueAcceptable = 0.65
+
 # DL data
 
 url = "http://storage.googleapis.com/download.tensorflow.org/data/stack_overflow_16k.tar.gz"
@@ -34,9 +48,6 @@ sample_file = os.path.join(train_dir, 'javascript/0.txt')
 with open(sample_file) as f:
   print(f.read())
 
-batch_size = 32
-seed = 42              
-
 # ------------------DATASET---------------------
 
 #Charger le dataset
@@ -44,11 +55,9 @@ seed = 42
 raw_train_ds = tf.keras.preprocessing.text_dataset_from_directory(
     'aclStackOv/train', 
     batch_size=batch_size, 
-    validation_split=0.2, 
+    validation_split=val_split, 
     subset='training', 
     seed=seed) 
-    #Found 8000 files belonging to 4 classes.
-    #Using 6400 files for training.
 
 for text_batch, label_batch in raw_train_ds.take(1):
   for i in range(3):
@@ -63,12 +72,12 @@ print("Label 2 corresponds to", raw_train_ds.class_names[2])
 print("Label 3 corresponds to", raw_train_ds.class_names[3])
 print("\n")
 
-# Validation (On utilisera les 20% (1600) restants pour la validation)
+# Validation
 
 raw_val_ds = tf.keras.preprocessing.text_dataset_from_directory(
     'aclStackOv/train', 
     batch_size=batch_size, 
-    validation_split=0.1, #20% des data serviront à la validation
+    validation_split=val_split, #20% des data serviront à la validation
     subset='validation', 
     seed=seed) #Penser à spécifier une seed aléatoire, ou shuffle=False pour éviter une superposition dans les éléments de la validation et de l'entrainement !
 
@@ -90,9 +99,6 @@ def custom_standardization(input_data):
   return tf.strings.regex_replace(stripped_html,
                                   '[%s]' % re.escape(string.punctuation),
                                   '')
-
-max_features = 15000
-sequence_length = 300
 
 vectorize_layer = TextVectorization(
     standardize=custom_standardization, # Défini par la fonction de standardisation ci-dessus
@@ -157,7 +163,6 @@ model.compile(loss=losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy']) #et pas BinaryAccuracy en multiclasse
 
 #Entrainement du modèle
-epochs = 35
 history = model.fit(   # model.fit() renvoie un objet 'History' qui contient un dictionnaire avec tout ce qui s'est passé pendant l'entraînement
     train_ds,
     validation_data=val_ds,
@@ -193,7 +198,6 @@ plt.ylabel('Loss')
 plt.legend()
 
 plt.show() #Loss/epochs
-
 
 plt.plot(epochs, acc, 'bo', label='Training acc')
 plt.plot(epochs, val_acc, 'b', label='Validation acc')
@@ -246,7 +250,7 @@ def maxLabel(results,raw_label):
     results = results.tolist()
     for elem in results:
         max = np.max(elem)
-        if float(max)>=0.65:
+        if float(max)>=minValueAcceptable:
             labMax = elem.index(float(max))
             label = raw_label.class_names[labMax]
         else:
