@@ -31,8 +31,8 @@ minValueAcceptable = 0.65
 
 url = "http://storage.googleapis.com/download.tensorflow.org/data/stack_overflow_16k.tar.gz"
 
-dataset = tf.keras.utils.get_file("aclStackOv\stack_overflow_16k", url,
-                                    untar=True, cache_dir='.',
+dataset = tf.keras.utils.get_file("stack_overflow_16k", url,
+                                    untar=True, cache_dir='aclStackOv',
                                     cache_subdir='')
 
 dataset_dir = os.path.join(os.path.dirname(dataset), '')
