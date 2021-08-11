@@ -18,7 +18,7 @@ from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
     #Charger le dataset
 batch_size = 32
 seed = 42   
-val_split = 0.4 #Pourcentage de fichiers utilisés dans la phase de validation
+val_split = 0.2 #Pourcentage de fichiers utilisés dans la phase de validation
     #Vectorisation
 max_features = 10000
 sequence_length = 250
