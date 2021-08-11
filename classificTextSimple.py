@@ -24,6 +24,7 @@ dataset = tf.keras.utils.get_file("aclImdb_v1", url,
                                     cache_subdir='')
 
 dataset_dir = os.path.join(os.path.dirname(dataset), 'aclImdb')
+print(dataset_dir)
 
 # Explore data
     #Arborescence
@@ -36,13 +37,15 @@ sample_file = os.path.join(train_dir, 'pos/1181_9.txt')
 with open(sample_file) as f:
   print(f.read())
 
+# ------------------DATASET---------------------
+
 #Charger le dataset
 
 remove_dir = os.path.join(train_dir, 'unsup')
 shutil.rmtree(remove_dir)
 
 batch_size = 32
-seed = 42
+seed = 42              
 
 raw_train_ds = tf.keras.preprocessing.text_dataset_from_directory(
     'aclImdb/train', 
@@ -135,6 +138,8 @@ train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
+#-------------MODELE-------------
+
 # Création du modèle 
 
 embedding_dim = 16
@@ -147,3 +152,86 @@ model = tf.keras.Sequential([
   layers.Dense(1)])
 
 model.summary()
+
+#Conf de la fonction de pertes :  problème de classification binaire et que le modèle génère une probabilité --> losses.BinaryCrossentropy
+model.compile(loss=losses.BinaryCrossentropy(from_logits=True),
+              optimizer='adam',
+              metrics=tf.metrics.BinaryAccuracy(threshold=0.0))
+
+#Entrainement du modèle
+epochs = 10
+history = model.fit(   # model.fit() renvoie un objet 'History' qui contient un dictionnaire avec tout ce qui s'est passé pendant l'entraînement
+    train_ds,
+    validation_data=val_ds,
+    epochs=epochs)
+
+#Evaluation du modèle
+loss, accuracy = model.evaluate(test_ds)
+
+print("Loss: ", loss)
+print("Accuracy: ", accuracy)
+
+
+#--------------STATISTIQUES-----------
+
+history_dict = history.history 
+history_dict.keys() # dict_keys(['loss', 'binary_accuracy', 'val_loss', 'val_binary_accuracy'])
+                    #Il y a quatre entrées : une pour chaque métrique surveillée pendant la formation et la validation
+
+acc = history_dict['binary_accuracy']
+val_acc = history_dict['val_binary_accuracy']
+loss = history_dict['loss']
+val_loss = history_dict['val_loss']
+
+epochs = range(1, len(acc) + 1)
+
+# "bo" is for "blue dot"
+plt.plot(epochs, loss, 'bo', label='Training loss')
+# b is for "solid blue line"
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.show() #Loss/epochs
+
+
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend(loc='lower right')
+
+plt.show()#Accuracy/epochs
+          #points = entrainement ligne = validation 
+          #Notez que la perte d'entraînement diminue à chaque époque et que la précision de l'entraînement augmente à chaque époque. Ceci est attendu lors de l'utilisation d'une optimisation de descente de gradient - elle devrait minimiser la quantité souhaitée à chaque itération.
+          #Ce n'est pas le cas pour la perte de validation et la précision, elles semblent culminer avant la précision de l'entraînement. Il s'agit d'un exemple de surapprentissage : le modèle fonctionne mieux sur les données d'apprentissage que sur des données qu'il n'a jamais vues auparavant. Après ce point, le modèle sur-optimise et apprend des représentations spécifiques aux données d'apprentissage qui ne se généralisent pas aux données de test.
+          #Dans ce cas particulier, vous pouvez éviter le surapprentissage en arrêtant simplement l'entraînement lorsque la précision de validation n'augmente plus. Une façon de le faire est d'utiliser le rappel tf.keras.callbacks.EarlyStopping .
+
+#Exporter le modèle
+
+export_model = tf.keras.Sequential([
+  vectorize_layer,
+  model,
+  layers.Activation('sigmoid')
+])
+
+export_model.compile(
+    loss=losses.BinaryCrossentropy(from_logits=False), optimizer="adam", metrics=['accuracy']
+)
+
+# Test it with `raw_test_ds`, which yields raw strings
+loss, accuracy = export_model.evaluate(raw_test_ds)
+print(accuracy)
+
+#Inférence sur de nouvelles données
+
+examples = [
+  "The movie was great!",
+  "The movie was okay.",
+  "The movie was terrible..."
+]
+
+print(export_model.predict(examples)) #Donne les prédictions sur les exemples
