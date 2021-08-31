@@ -15,13 +15,12 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 import tensorflow as tf
-from tensorflow.core.protobuf import rewriter_config_pb2
-config_proto = tf.compat.v1.ConfigProto()
 
-off = rewriter_config_pb2.RewriterConfig.OFF
-config_proto.graph_options.rewrite_options.arithmetic_optimization = off
-session = tf.compat.v1.Session(config=config_proto)
-
+#from tensorflow.core.protobuf import rewriter_config_pb2
+#config_proto = tf.compat.v1.ConfigProto()
+#off = rewriter_config_pb2.RewriterConfig.OFF
+#config_proto.graph_options.rewrite_options.arithmetic_optimization = off
+#session = tf.compat.v1.Session(config=config_proto)
 
 from tensorflow.keras import layers
 from tensorflow.keras import regularizers
